@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/Bootstrap.php';
+\App\Services\Auth::requireAdmin();
+
 $eventId = (int)($_GET['event_id'] ?? 1); // untuk demo
 $base = rtrim(app_config('base_url',''),'/');
 $refreshIn = (int)app_config('token_refresh_seconds',20);
@@ -22,6 +24,7 @@ $refreshIn = (int)app_config('token_refresh_seconds',20);
   <h2>QR Dinamis – Event #<?=$eventId?></h2>
   <div id="qrcode"></div>
   <p id="info" class="muted">Menunggu token…</p>
+  <p><a href="<?=$base?>/admin/events/create">+ Tambah Event</a></p>
 
 <script>
 const eventId = <?=json_encode($eventId)?>;
