@@ -35,73 +35,46 @@ $base = rtrim(app_config('base_url',''),'/');
 const base = <?=json_encode($base)?>;
 const log = (t)=>document.getElementById('log').textContent=t;
 
-async function checkin(token, ident, coords=null) {
-  const payload = { token, identity_number: ident };
-  if (coords) { payload.lat = coords.latitude; payload.lng = coords.longitude; }
+async function postCheckin(payload) {
   const res = await fetch(`${base}/api/checkin`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(payload)
   });
   const data = await res.json();
-  log((res.ok?'✅':'❌') + ' ' + (data.message||'') + (data.at?(' @ '+data.at):''));
+  return { ok: res.ok, data };
 }
 
-async function handleQr(decodedText) {
-  try {
-    const obj = JSON.parse(decodedText);
-    // {t:token, e:eventId, exp:datetime}
-    const ident = prompt("Masukkan NIM/NIP/NIK Anda:");
-    if (!ident) return;
-    let coords = null;
-    if (navigator.geolocation) {
-      try {
-        coords = await new Promise((ok,fail)=>{
-          navigator.geolocation.getCurrentPosition(
-            p=>ok(p.coords),
-            err=>ok(null),
-            {enableHighAccuracy:true, timeout:4000}
-          );
-        });
-      } catch(e){}
+async function checkin(token, ident, coords=null) {
+  const payload = { token, identity_number: ident };
+  if (coords) { payload.lat = coords.latitude; payload.lng = coords.longitude; }
+
+  let r = await postCheckin(payload);
+  if (r.ok) {
+    log('✅ ' + (r.data.message||'Hadir tercatat') + (r.data.at?(' @ '+r.data.at):''));
+    return;
+  }
+
+  // Jika peserta belum ada, minta data singkat dan daftar otomatis
+  if (r.data && r.data.need_register) {
+    const name = prompt("Nama lengkap Anda?");
+    if (!name) { log('❌ Pendaftaran dibatalkan'); return; }
+    const identity_type = prompt("Jenis identitas? (NIM/NIP/NIK)", "NIM") || "NIM";
+    const category = prompt("Kategori? (mahasiswa/dosen/tendik/umum)", "mahasiswa") || "mahasiswa";
+    payload.name = name;
+    payload.identity_type = identity_type.toUpperCase();
+    payload.category = category.toLowerCase();
+    // TODO: kalau ingin pilih prodi, bisa tambah dropdown di UI
+    r = await postCheckin(payload);
+    if (r.ok) {
+      log('✅ ' + (r.data.message||'Hadir tercatat') + (r.data.at?(' @ '+r.data.at):''));
+    } else {
+      log('❌ ' + (r.data && r.data.message ? r.data.message : 'Gagal mencatat hadir'));
     }
-    await checkin(obj.t, ident, coords);
-  } catch(e) {
-    log('QR tidak valid');
+    return;
   }
+
+  log('❌ ' + (r.data && r.data.message ? r.data.message : 'Gagal mencatat hadir'));
 }
-
-function startScanner() {
-  const html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox: {width: 240, height: 240}},
-    (decodedText) => {
-      html5QrCode.stop().then(()=>handleQr(decodedText));
-    },
-    (errorMessage) => {}
-  ).catch(err => log('Tidak bisa membuka kamera: '+err));
-}
-
-startScanner();
-
-document.getElementById('manualForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const token = document.getElementById('token').value.trim();
-  const ident = document.getElementById('ident').value.trim();
-  let coords = null;
-  if (navigator.geolocation) {
-    try {
-      coords = await new Promise((ok,fail)=>{
-        navigator.geolocation.getCurrentPosition(
-          p=>ok(p.coords),
-          err=>ok(null),
-          {enableHighAccuracy:true, timeout:4000}
-        );
-      });
-    } catch(e){}
-  }
-  await checkin(token, ident, coords);
-});
 </script>
 </body>
 </html>

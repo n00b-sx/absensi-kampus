@@ -32,4 +32,19 @@ class Attendance {
       return ['ok'=>false,'reason'=>$e->getMessage()];
     }
   }
+
+  public static function listByEvent(int $eventId): array {
+    $pdo = \app_pdo();
+    $sql = "SELECT a.id, a.checkin_at, a.method, a.ip_address, a.user_agent,
+                  u.name AS user_name, u.identity_type, u.identity_number, u.category,
+                  sp.name AS study_program
+            FROM attendances a
+            JOIN users u ON u.id = a.user_id
+            LEFT JOIN study_programs sp ON sp.id = u.study_program_id
+            WHERE a.event_id = ?
+            ORDER BY a.checkin_at ASC, a.id ASC";
+    $st = $pdo->prepare($sql);
+    $st->execute([$eventId]);
+    return $st->fetchAll();
+  }
 }

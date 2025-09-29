@@ -34,7 +34,22 @@ class ApiController {
 
     $eventId = $validation['event_id'];
     $userId  = Attendance::resolveUserIdByIdentity($ident);
-    if (!$userId) return \json_response(['message'=>'Peserta tidak ditemukan'], 404);
+    if (!$userId) {
+      // ---- AUTO-REGISTER (minimal) ----
+      $name = trim($input['name'] ?? '');
+      if ($name === '') {
+        // Kalau klien belum kirim nama, beri pesan khusus agar UI meminta nama
+        return \json_response(['message'=>'Peserta tidak ditemukan','need_register'=>true], 404);
+      }
+      $userId = \App\Models\User::createParticipant([
+        'name' => $name,
+        'identity_number' => $ident,
+        'identity_type' => $input['identity_type'] ?? 'NIM',
+        'category' => $input['category'] ?? 'mahasiswa',
+        'study_program_id' => isset($input['study_program_id']) ? (int)$input['study_program_id'] : null,
+      ]);
+    }
+
 
     $saved = Attendance::mark($eventId, $userId, [
       'method'=>'qr',

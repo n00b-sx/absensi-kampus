@@ -37,6 +37,11 @@ $routes = [
   ['GET',  '/admin/events/edit',      [PageController::class,'eventEdit']],    // ?id=#
   ['POST', '/admin/events/update',    [PageController::class,'eventUpdate']],
   ['POST', '/admin/events/delete',    [PageController::class,'eventDelete']],
+
+    // Admin - Events (protected) - sudah ada eventsIndex
+  ['GET',  '/admin/events',                [PageController::class,'eventsIndex']],     // mendukung ?q=
+  ['GET',  '/admin/events/export/csv',     [PageController::class,'exportCsv']],       // ?event_id=#
+  ['GET',  '/admin/events/export/xlsx',    [PageController::class,'exportXlsx']],      // ?event_id=#
 ];
 
 foreach ($routes as [$m,$p,$h]) {

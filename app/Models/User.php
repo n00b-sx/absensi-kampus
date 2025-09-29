@@ -28,4 +28,22 @@ class User {
     ]);
     return (int)$pdo->lastInsertId();
   }
+
+  public static function createParticipant(array $data): int {
+  $pdo = \app_pdo();
+  $st = $pdo->prepare("INSERT INTO users(name,email,password,role,category,identity_type,identity_number,study_program_id)
+                       VALUES (?,?,?,?,?,?,?,?)");
+  $st->execute([
+    $data['name'],
+    null,                   // email opsional
+    null,                   // password null untuk peserta
+    'peserta',
+    $data['category'] ?? 'mahasiswa',
+    $data['identity_type'] ?? 'NIM',
+    $data['identity_number'],
+    $data['study_program_id'] ?? null
+  ]);
+  return (int)$pdo->lastInsertId();
+}
+
 }
